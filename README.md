@@ -98,6 +98,8 @@ Powerful button tools for managing various button events of standalone button or
         btn.read()
    ```
 
+**NOTE**: if you use the same pin for digital after being used as analog, you may need to do a hard-reset of the device to change its internal configuration (sometimes even a whole power-off/power-on cycle).
+
 ### Example
 
 ```python
