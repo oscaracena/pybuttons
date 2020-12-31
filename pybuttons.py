@@ -8,10 +8,10 @@ class Button:
     IDLE, PRESSING = range(2)
     SINGLE_PRESS, DOUBLE_PRESS, LONG_PRESS = range(3)
 
-    def __init__(self, mode, pin, pullup, button_logic):
+    def __init__(self, mode, pin, pullup=False, button_logic=LOW):
         self._id = pin
         self._mode = mode
-        self._button_logic = self.LOW
+        self._button_logic = button_logic
         self._last_loop = 0
         self._loop_interval = 20
         self._double_press_timeout = 300
@@ -27,10 +27,9 @@ class Button:
         self._callbacks = {}
 
         self._pin = None
-        if _mode == self.MODE_DIGITAL:
+        if mode == self.MODE_DIGITAL:
             self._pin = Pin(
                 self._id, Pin.IN, Pin.PULL_UP if pullup else None)
-            self._button_logic = button_logic
 
     def on_press(self, cb):
         self._callbacks["press"] = cb
@@ -55,7 +54,7 @@ class Button:
         if self._mode != self.MODE_DIGITAL:
             return
 
-        cur_time = time.tick_ms()
+        cur_time = time.ticks_ms()
         if cur_time - self._last_loop >= self._loop_interval:
             self._last_loop = cur_time
             x = self._pin.value()
@@ -66,7 +65,7 @@ class Button:
             self.loop()
 
     def loop(self):
-        cur_time = time.tick_ms()
+        cur_time = time.ticks_ms()
         if self._prev_state == self.IDLE and \
             self._state == self.PRESSING:
             self._is_debouncing = True
@@ -130,8 +129,6 @@ class ButtonManager:
         self._pin = pin
         self._button_count = btn_num
         self._buttons = {}
-        self._btn_volt_lower_bounds = {}
-        self._btn_volt_upper_bounds = {}
 
         self._adc_resolution = 4096
         self._last_loop = 0
@@ -146,33 +143,36 @@ class ButtonManager:
 
     def add_button(self, btn, min_volt_reading, max_volt_reading):
         b = btn.get_id()
-        self._buttons[b] = btn
-        self._btn_volt_lower_bounds[b] = min_volt_reading
-        self._btn_volt_upper_bounds[b] = max_volt_reading
+        self._buttons[b] = (btn, min_volt_reading, max_volt_reading)
         return self
 
-    def get_button(self, id):
-        return self._buttons.get(id)
+    def get_button(self, id_):
+        return self._buttons.get(id_)[0]
 
     def begin(self):
         self._adc.read()
         time.sleep_ms(1)
 
     def loop(self):
-        cur_time = time.tick_ms()
+        cur_time = time.ticks_ms()
         if cur_time - self._last_loop >= self._loop_interval:
             self._last_loop = cur_time
             self._update_button_state()
 
-    def print_reading(self, pin):
-        z = self._adc.read()
+    @classmethod
+    def print_reading(cls, pin):
+        adc = ADC(Pin(pin))
+        adc.atten(ADC.ATTN_11DB)
+
+        z = adc.read()
         if z > 100:
             print(z)
         return z
 
     def _update_button_state(self):
         b = self._read_button()
-        for i, btn in self._buttons.items():
+        for i, fields in self._buttons.items():
+            btn = fields[0]
             state = Button.PRESSING if i == b else Button.IDLE
             btn.update_state(state)
             btn.loop()
@@ -181,20 +181,15 @@ class ButtonManager:
         button = -1
         sum_ = 0
 
-        for i in range(4):
+        for _ in range(4):
             sum_ += self._adc.read()
         z = sum_ / 4
 
         if z >= 100 or z < self._adc_resolution:
-            for b in self._buttons.keys():
-                if z > self._btn_volt_lower_bounds[b] and \
-                    z < self._btn_volt_upper_bounds:
-                    button = b
+            for i, fields in self._buttons.items():
+                vmin, vmax = fields[1:]
+                if vmin < z < vmax:
+                    button = i
                     break
 
         return button
-
-
-
-
-
