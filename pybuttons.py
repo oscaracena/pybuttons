@@ -1,5 +1,5 @@
 import time
-from machine import Pin
+from machine import Pin, ADC
 
 
 class Button:
@@ -85,6 +85,114 @@ class Button:
             self._press_count = 0
             self._first_pressed_at = 0
 
+        if self._prev_state == self.PRESSING and \
+            self._state == self.PRESSING:
+
+            if self._is_debouncing:
+                self._press_count += 1
+                if self._first_pressed_at == 0:
+                    self._first_pressed_at = cur_time
+                if self._pressed_since == 0:
+                    self._pressed_since = cur_time
+                self._is_debouncing = False
+
+            press_for_cb = self._callbacks.get("press_for")
+            if press_for_cb and self._press_count > 0 and \
+                cur_time - self._pressed_since >= self._press_for_timeout:
+
+                press_for_cb(self, self.LONG_PRESS)
+                self._press_count = 0
+                self._first_pressed_at = 0
+                self._pressed_since = 0
+                return
+
+            double_press_cb = self._callbacks.get("double_press")
+            if double_press_cb and self._press_count > 1 and \
+                cur_time - self._first_pressed_at <= self._double_press_timeout:
+
+                double_press_cb(self, self.DOUBLE_PRESS)
+                self._press_count = 0
+                self._first_pressed_at = 0
+
+        if self._prev_state == self.PRESSING and \
+            self._state == self.IDLE:
+            self._pressed_since = 0
+
+    def get_id(self):
+        return self._id
+
+    def get_pin(self):
+        return self.get_id()
+
+
+class ButtonManager:
+    def __init__(self, pin, btn_num):
+        self._pin = pin
+        self._button_count = btn_num
+        self._buttons = {}
+        self._btn_volt_lower_bounds = {}
+        self._btn_volt_upper_bounds = {}
+
+        self._adc_resolution = 4096
+        self._last_loop = 0
+        self._loop_interval = 20
+
+        self._adc = ADC(Pin(pin))
+        self._adc.atten(ADC.ATTN_11DB)
+
+    def set_adc_resolution(self, resolution):
+        self._adc_resolution = resolution
+        return self
+
+    def add_button(self, btn, min_volt_reading, max_volt_reading):
+        b = btn.get_id()
+        self._buttons[b] = btn
+        self._btn_volt_lower_bounds[b] = min_volt_reading
+        self._btn_volt_upper_bounds[b] = max_volt_reading
+        return self
+
+    def get_button(self, id):
+        return self._buttons.get(id)
+
+    def begin(self):
+        self._adc.read()
+        time.sleep_ms(1)
+
+    def loop(self):
+        cur_time = time.tick_ms()
+        if cur_time - self._last_loop >= self._loop_interval:
+            self._last_loop = cur_time
+            self._update_button_state()
+
+    def print_reading(self, pin):
+        z = self._adc.read()
+        if z > 100:
+            print(z)
+        return z
+
+    def _update_button_state(self):
+        b = self._read_button()
+        for i, btn in self._buttons.items():
+            state = Button.PRESSING if i == b else Button.IDLE
+            btn.update_state(state)
+            btn.loop()
+
+    def _read_button(self):
+        button = -1
+        sum_ = 0
+
+        for i in range(4):
+            sum_ += self._adc.read()
+        z = sum_ / 4
+
+        if z >= 100 or z < self._adc_resolution:
+            for b in self._buttons.keys():
+                if z > self._btn_volt_lower_bounds[b] and \
+                    z < self._btn_volt_upper_bounds:
+                    button = b
+                    break
+
+        return button
 
 
 
