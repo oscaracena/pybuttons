@@ -8,7 +8,7 @@ class Button:
     IDLE, PRESSING = range(2)
     SINGLE_PRESS, DOUBLE_PRESS, LONG_PRESS = range(3)
 
-    def __init__(self, mode, pin, pullup=False, button_logic=LOW):
+    def __init__(self, mode, pin, pullup=True, button_logic=LOW):
         self._id = pin
         self._mode = mode
         self._button_logic = button_logic
