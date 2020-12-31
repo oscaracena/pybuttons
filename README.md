@@ -41,7 +41,7 @@ Powerful button tools for managing various button events of standalone button or
    mode                          | Declare button mode. Assign `Button.MODE_DIGITAL` for standalone digital button.
    pin                           | GPIO of the button
    pullup=True                   | Use internal pullup
-   button_ogic=Button.LOW        | Button logic. Possible value: `Button.HIGH` (pulldown) or `Button.LOW` (pullup, default)
+   button\_logic=Button.LOW      | Button logic. Possible value: `Button.HIGH` (pulldown) or `Button.LOW` (pullup, default)
 
    ```python
    btn_pin = 12
@@ -185,7 +185,7 @@ while True:
    Parameter        | Description
    -----------------|------------
    pin              | Analog pin of the button array
-   btn_num          | Number of buttons in the array
+   btn\_num         | Number of buttons in the array
 
    ```python
    btn_pin = 35
@@ -231,8 +231,8 @@ while True:
    Parameter                  | Description
    ---------------------------|------------
    btn                        | Button object
-   minVoltageReading          | Minimum voltage reading of the button
-   maxVoltageReading          | Maximum voltage reading of the button
+   min\_volt\_reading            | Minimum voltage reading of the button
+   max\_volt\_reading          | Maximum voltage reading of the button
 
    ```python
    manager.add_button(btn0, 3100, 3500)
@@ -369,6 +369,6 @@ Button|Circuit Measurement|Serial Debug Data|Calculated Voltage w' Adjustment
 
 ## Reference
 
-- [ButtonFever from mickey9801](https://github.com/mickey9801/ButtonFever)
+- **[ButtonFever from mickey9801](https://github.com/mickey9801/ButtonFever)**
 - [Multiple button inputs using Arduino analog pin](https://rayshobby.net/wordpress/multiple-button-inputs-using-arduino-analog-pin/)
 - [How to Debouce Six Buttons on One Analog Pin With Arduino (tcrosley)](https://electronics.stackexchange.com/a/101414)
