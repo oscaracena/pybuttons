@@ -16,7 +16,6 @@ def press_handler(btn, pattern):
 
 def run():
     print("Running 'Standalone Digital Button' example...")
-    print("Note: if the pin was used as analog, you need to hard-reset the board.")
     btn = Button(Button.MODE_DIGITAL, PIN, False, Button.HIGH)
     btn.on_press(press_handler) \
         .on_double_press(press_handler) \
